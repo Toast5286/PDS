@@ -15,7 +15,7 @@ plot(AudioX,'DisplayName','Audio');
 
 %4
 x_fft = fft(AudioX(:,1),length(AudioX));
-%plot(fftshift(abs(x_fft)))
+plot(fftshift(abs(x_fft)))
 
 %9 notes at 325095 th sample 
 [auto_corr_y,lags] = xcorr(AudioX(30000:325100,1));%,AudioX(63740:325100,1));
@@ -39,19 +39,44 @@ N=144;
 
 %% Part 3
 
-
+%Calculates the power of the signal
 PowAudioX = AudioX.^2;
-mean_pow = xcorr(PowAudioX(30000:325100),rectwin(2000));
-peak_index=[];
-peak_pow = [];
-t=3;
-for i=1:length(mean_pow)-1
-    peak_pow = [peak_pow,mean_pow(i+1)-mean_pow(i)];
-    % if mean(mean_pow(i:i+20))-mean(mean_pow(i-20:i))> t
-    %     peak_index = [peak_index,i];
-    % end
-end
-plot(mean_pow);
-hold on;
-scatter(peak_pow,'r');
+
+%hann window so we calculate the average of the points, giving more importance to the main point we're analysing (remove noise from power signal)
+[mean_pow,lags] = xcorr(PowAudioX(1:325100),hann(15000));
+%As the hannis window isn't centered in 0, we need a offset on lags to center it
+lags(:) = lags(:)+(15000/2);
+
+%finds the index where lags = 0
+zero_lag = find(~lags);
+
+%Find the local minimum
+ismin = islocalmin(mean_pow);
+ismin(1:zero_lag)=false;
+
+%Find the local maximum
+ismax = islocalmax(mean_pow);
+ismax(1:zero_lag)=false;
+
+
+plot(500.*AudioX(1:325100))
+hold on
+plot(lags(zero_lag:end),mean_pow(zero_lag:end),lags(ismin),mean_pow(ismin),'r*',lags(ismax),mean_pow(ismax),'b*');
+
+
+
+% 
+% 
+% peak_index=[];
+% peak_pow = [];
+% t=3;
+% for i=1:length(mean_pow)-1
+%     peak_pow = [peak_pow,mean_pow(i+1)-mean_pow(i)];
+%     % if mean(mean_pow(i:i+20))-mean(mean_pow(i-20:i))> t
+%     %     peak_index = [peak_index,i];
+%     % end
+% end
+% plot(mean_pow);
+% hold on;
+% scatter(peak_pow,'r');
 
