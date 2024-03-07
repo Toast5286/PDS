@@ -40,3 +40,18 @@ N=144;
 %% Part 3
 
 
+PowAudioX = AudioX.^2;
+mean_pow = xcorr(PowAudioX(30000:325100),rectwin(2000));
+peak_index=[];
+peak_pow = [];
+t=3;
+for i=1:length(mean_pow)-1
+    peak_pow = [peak_pow,mean_pow(i+1)-mean_pow(i)];
+    % if mean(mean_pow(i:i+20))-mean(mean_pow(i-20:i))> t
+    %     peak_index = [peak_index,i];
+    % end
+end
+plot(mean_pow);
+hold on;
+scatter(peak_pow,'r');
+
