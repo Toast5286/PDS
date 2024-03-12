@@ -1,34 +1,34 @@
 %%
 %Part1
 
+%1
 [Audio, fs] = audioread("greensleeves.wav");
 AudioX = Audio(:,1); 
 
-plot(AudioX,'DisplayName','Audio');
+plot(AudioX(1:325100,1),'DisplayName','Audio');
 %soundsc(AudioX(:,1),fs);
-
+%%
 %3 
-%Yes, the signal can be down sampled before the pitch recognition, since
-%the it's maximum relevant frequency is about 30 times higher than the used
-%sampling frequency (which is 44kHz)
-
+%Yes the signal can be down sampled before the pitch recognition, since 
+%the used sampling frequency (which is 44kHz) is about 30 times higher 
+%than the signal's maximum relevant frequency 
 
 %4
 x_fft = fft(AudioX(:,1),length(AudioX));
 plot(fftshift(abs(x_fft)))
+title('Fourier Spectrum')
+%ylabel('Magnitude')
 
-%9 notes at 325095 th sample 
-[auto_corr_y,lags] = xcorr(AudioX(30000:325100,1));%,AudioX(63740:325100,1));
-%auto_corr_y = auto_corr_y(length(AudioX(1:325100,1)):length(AudioX(1:325100,1))+3000);
-subplot(2,1,1),plot(AudioX(1:325100,1)) 
-subplot(2,1,2),plot(auto_corr_y(325100:length(auto_corr_y)))
-%subplot(3,1,3),stem(lags,auto_corr_y) set the subplot(3,...,...) in order
-%to show these 3 plots 
-%stem(lags,c); 
+%9 notes at 325100 th sample 
+[auto_corr_y,lags] = xcorr(AudioX(63740:325100,1));
+%subplot(2,1,1),plot(AudioX(1:325100,1)) 
+%subplot(2,1,2),
+plot(auto_corr_y(325100:length(auto_corr_y)));
+title('Autocorrelation')
 
 %5
 N=144;
-%spectrogram(AudioX(1:325095,1), hann(N), 3*N/4, 4*N, fs, 'yaxis');
+%spectrogram(AudioX(63740:325095,1), hann(N), 3*N/4, 4*N, fs, 'yaxis');
 %title('Sepctogram of the first 9 tones')
 
 
@@ -36,9 +36,30 @@ N=144;
 
 %1
 %Tone 1: 38000 to 64000 (in relation to sample number)
+%Tone 2: 64000 to 112638
+%tone 3: 112638 to 138904
+%tone 4: 138904 to 178222
+%tone 5: 178222 to 190148
+%tone 6: 190148 to 212707
+%tone 7: 212707 to 260890
+%tone 8: 260890 to 288443
+%tone 9: 288443 to 323090
+
+%2
+x_fft_1st_sample = fft(AudioX(212707:260890,1),length(AudioX));
+k = abs(x_fft_1st_sample);
+maximum = max(max(k));
+[x,y] = find(k==maximum);
+fundF = x(2)/1e6;
+
+%3
+%Ask the professor about this
+%We could use the true pitches and compare with the predicted ones 
+
 
 %% Part 3
 
+%1
 %Calculates the power of the signal
 PowAudioX = AudioX.^2;
 
@@ -58,12 +79,26 @@ ismin(1:zero_lag)=false;
 ismax = islocalmax(mean_pow);
 ismax(1:zero_lag)=false;
 
-
 plot(500.*AudioX(1:325100))
 hold on
 plot(lags(zero_lag:end),mean_pow(zero_lag:end),lags(ismin),mean_pow(ismin),'r*',lags(ismax),mean_pow(ismax),'b*');
 
+%% Algorithm for the segmentation of tones and 
+k = find(ismin==1);
+mins = lags(k(end-7:end));
+f_array = [0];
 
+for i=1:length(mins)-1
+    fft_note = fft(AudioX(mins(i):mins(i+1),1),length(AudioX));
+    maximum = max(max(abs(fft_note)));
+    [x,y] = find(abs(fft_note)==maximum);
+    f_array(i) = x(2)/1e6;
+end
+
+%error = 0.0037 for first sample 
+
+
+%2
 
 % 
 % 
