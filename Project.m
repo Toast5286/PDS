@@ -23,8 +23,8 @@ title('Fourier Spectrum')
 [auto_corr_y,lags] = xcorr(AudioX(63740:325100,1));
 %subplot(2,1,1),plot(AudioX(1:325100,1)) 
 %subplot(2,1,2),
-plot(auto_corr_y(325100:length(auto_corr_y)));
-title('Autocorrelation')
+% plot(auto_corr_y(325100:length(auto_corr_y)));
+% title('Autocorrelation')
 
 %5
 N=144;
@@ -46,12 +46,16 @@ N=144;
 %tone 9: 288443 to 323090
 
 %2
-x_fft_1st_sample = fft(AudioX(212707:260890,1),length(AudioX));
-k = abs(x_fft_1st_sample);
-maximum = max(max(k));
-[x,y] = find(k==maximum);
-fundF = x(2)/1e6;
+signal = AudioX(64000:112638,1);
+x_fft_1st_sample = fft(signal,length(signal));
 
+L = length(signal);
+K = ((fs/L*(0:L-1)))';
+K(1:L,2) = (abs(x_fft_1st_sample))';
+maximum = max(K(:,2));
+[x,y] = find(K==maximum);
+freq = K(x(1),1);
+disp(freq)
 %3
 %Ask the professor about this
 %We could use the true pitches and compare with the predicted ones 
@@ -83,35 +87,50 @@ plot(500.*AudioX(1:325100))
 hold on
 plot(lags(zero_lag:end),mean_pow(zero_lag:end),lags(ismin),mean_pow(ismin),'r*',lags(ismax),mean_pow(ismax),'b*');
 
-%% Algorithm for the segmentation of tones and 
+%% Algorithm for the segmentation of tones and pitches
+
 k = find(ismin==1);
 mins = lags(k(end-7:end));
+m = find(ismax==1);
+maxs = lags(m(end-8:end-1));
+f_array = [0];
+
+for i=1:length(mins)
+    sig = AudioX(maxs(i):mins(i),1);
+
+    fft_note = fft(sig,length(sig));
+    L = length(sig);
+    
+    G = ((fs/L*(0:L-1)))';
+    G(1:L,2) = (abs(fft_note))';
+   
+    maximum = max(G(:,2));
+    [x,y] = find(G(:,2)==maximum);
+    f_array(i) = G(x(1),1);
+end
+plot((fs/L*(0:L-1)),abs(fft_note));
+fprintf('The frequencies of the 8 recognized tones are method1: \n')
+disp(f_array)
+
+
+%% 2nd Algorithm 
+k = find(ismin==1);
+mins = lags(k(end-8:end));
 f_array = [0];
 
 for i=1:length(mins)-1
-    fft_note = fft(AudioX(mins(i):mins(i+1),1),length(AudioX));
-    maximum = max(max(abs(fft_note)));
-    [x,y] = find(abs(fft_note)==maximum);
-    f_array(i) = x(2)/1e6;
+    sig = AudioX(mins(i):mins(i+1),1);
+
+    fft_note = fft(sig,length(sig));
+    L = length(sig);
+    
+    G = ((fs/L*(0:L-1)))';
+    G(1:L,2) = (abs(fft_note))';
+   
+    maximum = max(G(:,2));
+    [x,y] = find(G(:,2)==maximum);
+    f_array(i) = G(x(1),1);
 end
 
-%error = 0.0037 for first sample 
-
-
-%2
-
-% 
-% 
-% peak_index=[];
-% peak_pow = [];
-% t=3;
-% for i=1:length(mean_pow)-1
-%     peak_pow = [peak_pow,mean_pow(i+1)-mean_pow(i)];
-%     % if mean(mean_pow(i:i+20))-mean(mean_pow(i-20:i))> t
-%     %     peak_index = [peak_index,i];
-%     % end
-% end
-% plot(mean_pow);
-% hold on;
-% scatter(peak_pow,'r');
-
+fprintf('The frequencies of the 8 recognized tones are method2: \n')
+disp(f_array)
