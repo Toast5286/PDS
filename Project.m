@@ -1,6 +1,6 @@
 %%
 %Part1
-
+figure;
 %1
 [Audio, fs] = audioread("greensleeves.wav");
 AudioX = Audio(:,1); 
@@ -46,7 +46,7 @@ N=144;
 %tone 9: 288443 to 323090
 
 %2
-signal = AudioX(64000:112638,1);
+signal = AudioX(260890:288443,1);
 x_fft_1st_sample = fft(signal,length(signal));
 
 L = length(signal);
@@ -64,73 +64,101 @@ disp(freq)
 %% Part 3
 
 %1
-%Calculates the power of the signal
-PowAudioX = AudioX.^2;
+[ismin,ismax,lags] = segmentTone(AudioX,15000);
+Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs)
+Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs)
 
-%hann window so we calculate the average of the points, giving more importance to the main point we're analysing (remove noise from power signal)
-[mean_pow,lags] = xcorr(PowAudioX(1:325100),hann(15000));
-%As the hannis window isn't centered in 0, we need a offset on lags to center it
-lags(:) = lags(:)+(15000/2);
 
-%finds the index where lags = 0
-zero_lag = find(~lags);
+%% Functions
+%1
+function [ismin,ismax,lags] = segmentTone(Signal,Filterwidth)
+    figure;
+    %Calculates the power of the signal
+    PowAudioX = Signal.^2;
+    
+    %hann window so we calculate the average of the points, giving more importance to the main point we're analysing (remove noise from power signal)
+    [mean_pow,lags] = xcorr(PowAudioX,hann(Filterwidth));
+    %As the hannis window isn't centered in 0, we need a offset on lags to center it
+    lags(:) = lags(:)+(Filterwidth/2);
+    
+    %finds the index where lags = 0
+    zero_lag = find(~lags);
+    
+    %Find the local minimum
+    ismin = islocalmin(round(mean_pow));
+    ismin(1:zero_lag)=false;
+    
+    %Find the local maximum
+    ismax = islocalmax(round(mean_pow));
+    ismax(1:zero_lag)=false;
+    
+    
+    plot(max(mean_pow).*Signal)
+    hold on
+    plot(lags(zero_lag:end),mean_pow(zero_lag:end),lags(ismin),mean_pow(ismin),'r*',lags(ismax),mean_pow(ismax),'b*');
 
-%Find the local minimum
-ismin = islocalmin(mean_pow);
-ismin(1:zero_lag)=false;
-
-%Find the local maximum
-ismax = islocalmax(mean_pow);
-ismax(1:zero_lag)=false;
-
-plot(500.*AudioX(1:325100))
-hold on
-plot(lags(zero_lag:end),mean_pow(zero_lag:end),lags(ismin),mean_pow(ismin),'r*',lags(ismax),mean_pow(ismax),'b*');
+end
 
 %% Algorithm for the segmentation of tones and pitches
-
-k = find(ismin==1);
-mins = lags(k(end-7:end));
-m = find(ismax==1);
-maxs = lags(m(end-8:end-1));
-f_array = [0];
-
-for i=1:length(mins)
-    sig = AudioX(maxs(i):mins(i),1);
-
-    fft_note = fft(sig,length(sig));
-    L = length(sig);
+function f_array = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs)
+    figure;
+    k = find(ismin==1);
+    mins = lags(k);
+    m = find(ismax==1);
+    maxs = lags(m);
+    f_array = [0];
     
-    G = ((fs/L*(0:L-1)))';
-    G(1:L,2) = (abs(fft_note))';
-   
-    maximum = max(G(:,2));
-    [x,y] = find(G(:,2)==maximum);
-    f_array(i) = G(x(1),1);
+    for i=1:length(maxs)
+        if i>length(mins)
+            sig = AudioX(maxs(i):end,1);
+        else
+            sig = AudioX(maxs(i):mins(i),1);
+        end
+        fft_note = fft(sig,length(sig));
+        L = length(sig);
+        
+        G = ((fs/L*(0:L-1)))';
+        G(1:L,2) = (abs(fft_note))';
+       
+        maximum = max(G(:,2));
+        [x,y] = find(G(:,2)==maximum);
+        f_array(i) = G(x(1),1);
+    end
+    plot((fs/L*(0:L-1)),abs(fft_note));
+    fprintf('The frequencies of the 8 recognized tones are method1: \n')
+    disp(f_array)
 end
-plot((fs/L*(0:L-1)),abs(fft_note));
-fprintf('The frequencies of the 8 recognized tones are method1: \n')
-disp(f_array)
 
 
 %% 2nd Algorithm 
-k = find(ismin==1);
-mins = lags(k(end-8:end));
-f_array = [0];
+function f_array = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs)
 
-for i=1:length(mins)-1
-    sig = AudioX(mins(i):mins(i+1),1);
-
-    fft_note = fft(sig,length(sig));
-    L = length(sig);
+    k = find(ismin==1);
+    mins = lags(k);
+    f_array = [0];
     
-    G = ((fs/L*(0:L-1)))';
-    G(1:L,2) = (abs(fft_note))';
-   
-    maximum = max(G(:,2));
-    [x,y] = find(G(:,2)==maximum);
-    f_array(i) = G(x(1),1);
+    for i=1:length(mins)-1
+        sig = AudioX(mins(i):mins(i+1),1);
+    
+        fft_note = fft(sig,length(sig));
+        L = length(sig);
+        
+        G = ((fs/L*(0:L-1)))';
+        G(1:L,2) = (abs(fft_note))';
+       
+        maximum = max(G(:,2));
+        [x,y] = find(G(:,2)==maximum);
+        f_array(i) = G(x(1),1);
+    end
+    
+    fprintf('The frequencies of the 8 recognized tones are method2: \n')
+    disp(f_array)
 end
 
-fprintf('The frequencies of the 8 recognized tones are method2: \n')
-disp(f_array)
+%% 2
+function Error_array = ErrorCalculator(GroundTruth,Freq_array)
+    Error_array = abs(Freq_array-GroundTruth);
+    fprintf('Mean error: \n')
+    disp(mean(Error_array))
+end
+%%GroundTruth = [329.63,392,440,493.23,523.25,493.88,440,369.99];
