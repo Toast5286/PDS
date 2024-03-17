@@ -88,25 +88,23 @@ soundsc(sigout(:,1),fs)
 Ts=1/fs;
 time = 0.8;
 t=[0:Ts:time];
-notes = [87.31 98 110 98]; 
+notes = [440 659 440 659 493 659 493 659 523 659 523 659 587 659 587 659 440 659 440 659]; 
 sound = zeros(1,int32(time/Ts+1));
 for i=1:length(notes)
     
-        sound(i,:) = cos(2.*pi.*notes(i).*t);
+        sound(i,:) = cos(2.*pi.*notes(i).*t).*exp(-10.*t);
    
 end
-reverb = reverberator("DecayFactor",0.0,"SampleRate",fs);
 sig = reshape(sound',length(notes)*length(t),1);
-sigout = reverb(sig);
-sigout = sigout./ max(abs(sigout(:)));
+sig = sig./ max(abs(sig(:)));
 
-%soundsc(sigout(:,1),fs)
+soundsc(sig,fs)
 
 % sigout = sigout./ max(abs(sigout(:)));
 % audiowrite(filename,sigout(:,1),fs);
 
-[ismin,ismax,lags] = segmentTone(sigout(:,1),15000);
-Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,sigout(:,1),fs);
+[ismin,ismax,lags] = segmentTone(sig,15000);
+Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,sig,fs);
 
 %% Functions
 %1
