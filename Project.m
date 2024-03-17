@@ -46,7 +46,7 @@ N=144;
 %tone 9: 288443 to 323090
 
 %2
-signal = AudioX(260890:288443,1);
+signal = AudioX(38000:64000,1);
 x_fft_1st_sample = fft(signal,length(signal));
 
 L = length(signal);
@@ -56,18 +56,57 @@ maximum = max(K(:,2));
 [x,y] = find(K==maximum);
 freq = K(x(1),1);
 disp(freq)
-%3
-%Ask the professor about this
-%We could use the true pitches and compare with the predicted ones 
 
+
+%3
 
 %% Part 3
 
 %1
 [ismin,ismax,lags] = segmentTone(AudioX,15000);
-Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs)
-Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs)
+Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
+%Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs);
 
+%2 
+%% Question 3
+%Audio signal generation
+Ts=1/fs;
+time = 0.5;
+t=[0:Ts:time];
+notes = [Algorithm1(1:9)];
+sound = zeros(1,int32(time/Ts+1));
+for i=1:length(Algorithm1(1:9))
+     sound(i,:) = cos(2.*pi.*notes(i).*t)+cos(4.*pi.*notes(i).*t)+cos(8.*pi.*notes(i).*t)+cos(16.*pi.*notes(i).*t);    
+end
+sig = reshape(sig',9*length(t),1);
+reverb = reverberator("DecayFactor",0.9,"SampleRate",fs);
+sigout = reverb(sig);
+soundsc(sigout(:,1),fs)
+
+%%
+%Synthesized signal
+Ts=1/fs;
+time = 0.8;
+t=[0:Ts:time];
+notes = [87.31 98 110 98]; 
+sound = zeros(1,int32(time/Ts+1));
+for i=1:length(notes)
+    
+        sound(i,:) = cos(2.*pi.*notes(i).*t);
+   
+end
+reverb = reverberator("DecayFactor",0.0,"SampleRate",fs);
+sig = reshape(sound',length(notes)*length(t),1);
+sigout = reverb(sig);
+sigout = sigout./ max(abs(sigout(:)));
+
+%soundsc(sigout(:,1),fs)
+
+% sigout = sigout./ max(abs(sigout(:)));
+% audiowrite(filename,sigout(:,1),fs);
+
+[ismin,ismax,lags] = segmentTone(sigout(:,1),15000);
+Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,sigout(:,1),fs);
 
 %% Functions
 %1
@@ -93,7 +132,7 @@ function [ismin,ismax,lags] = segmentTone(Signal,Filterwidth)
     ismax(1:zero_lag)=false;
     
     
-    plot(max(mean_pow).*Signal)
+    plot(max(mean_pow).*Signal);
     hold on
     plot(lags(zero_lag:end),mean_pow(zero_lag:end),lags(ismin),mean_pow(ismin),'r*',lags(ismax),mean_pow(ismax),'b*');
 
@@ -125,7 +164,7 @@ function f_array = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs)
         f_array(i) = G(x(1),1);
     end
     plot((fs/L*(0:L-1)),abs(fft_note));
-    fprintf('The frequencies of the 8 recognized tones are method1: \n')
+    fprintf('The frequencies of the recognized tones are, using the first method: \n');
     disp(f_array)
 end
 
@@ -151,7 +190,7 @@ function f_array = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs)
         f_array(i) = G(x(1),1);
     end
     
-    fprintf('The frequencies of the 8 recognized tones are method2: \n')
+    fprintf('The frequencies of the recognized tones are, using the second method: \n')
     disp(f_array)
 end
 
@@ -162,3 +201,5 @@ function Error_array = ErrorCalculator(GroundTruth,Freq_array)
     disp(mean(Error_array))
 end
 %%GroundTruth = [329.63,392,440,493.23,523.25,493.88,440,369.99];
+
+
