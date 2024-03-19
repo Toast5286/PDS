@@ -1,40 +1,29 @@
-%%
-%Part1
+%% Part1
 figure;
+
 %1
 [Audio, fs] = audioread("greensleeves.wav");
 AudioX = Audio(:,1); 
 
-plot(AudioX(1:325100,1),'DisplayName','Audio');
+plot(AudioX);
+title('\textbf{Signal from greensleeves.wav}', 'Interpreter','latex')
+xlabel('\textbf{Sample}','Interpreter','latex');
+ylabel('\textbf{Amplitude}', 'Interpreter','latex');
 %soundsc(AudioX(:,1),fs);
-%%
+
+%2
+plot(AudioX(1:325100,1));
+title('\textbf{Shape of first 9 tones}', 'Interpreter','latex')
+xlabel('\textbf{Sample}','Interpreter','latex');
+ylabel('\textbf{Amplitude}', 'Interpreter','latex') ;
+
 %3 
 %Yes the signal can be down sampled before the pitch recognition, since 
 %the used sampling frequency (which is 44kHz) is about 30 times higher 
 %than the signal's maximum relevant frequency 
 
 %4
-x_fft = fft(AudioX(:,1),length(AudioX));
-plot(fftshift(abs(x_fft)))
-title('Fourier Spectrum')
-%ylabel('Magnitude')
 
-%9 notes at 325100 th sample 
-[auto_corr_y,lags] = xcorr(AudioX(63740:325100,1));
-%subplot(2,1,1),plot(AudioX(1:325100,1)) 
-%subplot(2,1,2),
-% plot(auto_corr_y(325100:length(auto_corr_y)));
-% title('Autocorrelation')
-
-%5
-N=144;
-%spectrogram(AudioX(63740:325095,1), hann(N), 3*N/4, 4*N, fs, 'yaxis');
-%title('Sepctogram of the first 9 tones')
-
-
-%% Part 2
-
-%1
 %Tone 1: 38000 to 64000 (in relation to sample number)
 %Tone 2: 64000 to 112638
 %tone 3: 112638 to 138904
@@ -45,7 +34,52 @@ N=144;
 %tone 8: 260890 to 288443
 %tone 9: 288443 to 323090
 
-%2
+lista1 = [38000 64000 112638 138904 178222 190148 212707 260890 288443]; %beginning of each note
+lista2 = [64000 112638 138904 178222 190148 212707 260890 288443 325100]; %ending of each note 
+
+%Fourier Spectrum
+for i=1:length(lista1)
+    signal = AudioX(lista1(i):lista2(i),1);
+    L = length(signal);
+    sig_fft = fft(signal,length(signal));
+    axis = ((fs/L*(0:L-1)));
+    subplot(3, 3, i);
+    plot(axis,abs(sig_fft));
+    title('\textbf{Fourier Spectrum of note }' + string(i), 'Interpreter','latex')
+    xlabel('\textbf{Frequency (Hz)}','Interpreter','latex');
+    ylabel('\textbf{Magnitude}', 'Interpreter','latex');
+end
+
+%Auto-Correlation
+for r=1:length(lista1)
+    [auto_corr,lag] = xcorr(AudioX(1:325100,1),AudioX(lista1(r):lista2(r),1));
+    subplot(3, 3, r);
+    plot(auto_corr(325100:length(auto_corr)));
+    title('\textbf{Auto-Correlation of note }' + string(r), 'Interpreter','latex')
+    xlabel('\textbf{Lags}','Interpreter','latex');
+    ylim([0 1000]);
+    %ylabel('\textbf{0}', 'Interpreter','latex');
+end
+
+%5
+N=144;
+spectrogram(AudioX, hann(N), 3*N/4, 4*N, fs, 'yaxis');
+title('Sepctogram of the first 9 tones')
+%% Part 2
+
+%1
+
+%Tone 1: 38000 to 64000 (in relation to sample number)
+%Tone 2: 64000 to 112638
+%tone 3: 112638 to 138904
+%tone 4: 138904 to 178222
+%tone 5: 178222 to 190148
+%tone 6: 190148 to 212707
+%tone 7: 212707 to 260890
+%tone 8: 260890 to 288443
+%tone 9: 288443 to 323090
+
+%2 and 3
 signal = AudioX(38000:64000,1);
 x_fft_1st_sample = fft(signal,length(signal));
 
@@ -57,18 +91,17 @@ maximum = max(K(:,2));
 freq = K(x(1),1);
 disp(freq)
 
-
-%3
-
+% axis = ((fs/L*(0:L-1)));
+% plot(axis, abs(x_fft_1st_sample))
 %% Part 3
 
 %1
 [ismin,ismax,lags] = segmentTone(AudioX,15000);
 Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
-%Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs);
+Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs);
 
-%2 
-%% Question 3
+
+%% 2
 %Audio signal generation
 Ts=1/fs;
 time = 0.5;
@@ -83,7 +116,7 @@ reverb = reverberator("DecayFactor",0.9,"SampleRate",fs);
 sigout = reverb(sig);
 soundsc(sigout(:,1),fs)
 
-%%
+%% 2 continuation 
 %Synthesized signal
 Ts=1/fs;
 time = 0.8;
