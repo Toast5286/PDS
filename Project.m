@@ -83,20 +83,40 @@ title('Sepctogram of the first 9 tones')
 signal = AudioX(38000:64000,1);
 x_fft_1st_sample = fft(signal,length(signal));
 
+% L = length(signal);
+% K = ((fs/L*(0:L-1)))';
+% K(1:L,2) = (abs(x_fft_1st_sample))';
+% maximum = max(K(:,2));
+% [x,y] = find(K==maximum);
+% freq = K(x(1),1);
+% disp(freq)
+
+Ts=1/fs;
+time = 0.7;
+t=[0:Ts:time];
+notes = [200];
+%extra_notes = [87.31 98 110 98];
+signal = zeros(1,int32(time/Ts+1));
+for i=1:length(notes)
+        signal(i,:) = cos(2.*pi.*notes(i).*t)+ cos(16.*pi.*notes(i).*t)+ cos(32.*pi.*notes(i).*t);
+end
+sig_fft = fft(signal,length(signal));
 L = length(signal);
 K = ((fs/L*(0:L-1)))';
-K(1:L,2) = (abs(x_fft_1st_sample))';
+K(1:L,2) = (abs(sig_fft))';
 maximum = max(K(:,2));
 [x,y] = find(K==maximum);
 freq = K(x(1),1);
 disp(freq)
+
+
 
 % axis = ((fs/L*(0:L-1)));
 % plot(axis, abs(x_fft_1st_sample))
 %% Part 3
 
 %1
-[ismin,ismax,lags] = segmentTone(AudioX,15000);
+[ismin,ismax,lags] = segmentTone(AudioX(1:323090,1),15000);
 Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
 Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs);
 
@@ -233,4 +253,36 @@ function Error_array = ErrorCalculator(GroundTruth,Freq_array)
 end
 %%GroundTruth = [329.63,392,440,493.23,523.25,493.88,440,369.99];
 
+%% Algorithm for the segmentation of tones and pitches using AutoCorrelation
+function f_array = ToneID3rdAlgorithm(lags,ismin,ismax,AudioX,fs)
+    figure;
+    k = find(ismin==1);
+    mins = lags(k);
+    m = find(ismax==1);
+    maxs = lags(m);
+    f_array = [0];
+    sig_Period_sample = [0];
+    LMax_index = [0,0];
+    
+    %Samples/S * 1/s (smallest/biggest frequency a human can hear)
+    minSampleLag = fs/19.44;
+    
+    for i=1:length(maxs)
+        if i>length(mins)
+            sig = AudioX(maxs(i):end,1);
+        else
+            sig = AudioX(maxs(i):mins(i),1);
+        end
+        [auto_corr,auto_lag] = xcorr(sig,sig,ceil(minSampleLag));
+        LocalMax = auto_corr(islocalmax(auto_corr));
+        LMax_index(1) = min(find(auto_corr == LocalMax(1)));
+        LMax_index(2) = min(find(auto_corr == LocalMax(2)));
+        sig_Period_sample(i) = LMax_index(2)-LMax_index(1);
 
+        f_array(i) = (fs/sig_Period_sample(i));
+    end
+    
+    plot(auto_lag,auto_corr);
+    fprintf('The frequencies of the recognized tones are, using the third method: \n');
+    disp(f_array)
+end
