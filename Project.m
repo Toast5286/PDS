@@ -116,7 +116,7 @@ disp(freq)
 %% Part 3
 
 %1
-[ismin,ismax,lags] = segmentTone(AudioX(1:323090,1),15000);
+[ismin,ismax,lags] = segmentTone(AudioX(1:323090,1),fs);
 Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
 Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs);
 
@@ -131,7 +131,7 @@ sound = zeros(1,int32(time/Ts+1));
 for i=1:length(Algorithm1(1:9))
      sound(i,:) = cos(2.*pi.*notes(i).*t)+cos(4.*pi.*notes(i).*t)+cos(8.*pi.*notes(i).*t)+cos(16.*pi.*notes(i).*t);    
 end
-sig = reshape(sig',9*length(t),1);
+sig = reshape(sound',9*length(t),1);
 reverb = reverberator("DecayFactor",0.9,"SampleRate",fs);
 sigout = reverb(sig);
 soundsc(sigout(:,1),fs)
@@ -156,13 +156,37 @@ soundsc(sig,fs)
 % sigout = sigout./ max(abs(sigout(:)));
 % audiowrite(filename,sigout(:,1),fs);
 
-[ismin,ismax,lags] = segmentTone(sig,15000);
+[ismin,ismax,lags] = segmentTone(sig,fs);
 Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,sig,fs);
+
+%% Segmentation algorithm Evalutaion 
+
+Starts = [0.01 0.5];
+Ends = [0.07 0.1];
+Decay_Factor = [1 5 10];
+freq = 200;
+
+for decay_index = 1:length(Decay_Factor)
+    sound = 1:(1/fs):Starts(1);
+    
+    for time_index = 1:length(Starts)
+        t = 1:(1/fs):(Ends(time_index)-Starts(time_index));
+        
+        sound = [sound, cos(2*pi*freq*t).*exp(-Decay_Factor(decay_index)*t)];
+    end
+    
+    [ismin,ismax,lags] = segmentTone(sound,fs);
+    Predicted_Starts = lags(ismax)
+    Predicted_Ends = lags(ismin)
+
+end
 
 %% Functions
 %1
-function [ismin,ismax,lags] = segmentTone(Signal,Filterwidth)
+function [ismin,ismax,lags] = segmentTone(Signal,fs)
     figure;
+    Filterwidth = round(fs*15000/44000);
+
     %Calculates the power of the signal
     PowAudioX = Signal.^2;
     
