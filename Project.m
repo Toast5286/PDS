@@ -61,6 +61,7 @@ for r=1:length(lista1)
     %ylabel('\textbf{0}', 'Interpreter','latex');
 end
 
+
 %5
 N=144;
 spectrogram(AudioX, hann(N), 3*N/4, 4*N, fs, 'yaxis');
