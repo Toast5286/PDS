@@ -161,18 +161,19 @@ Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,sig,fs);
 
 %% Segmentation algorithm Evalutaion 
 
-Starts = [0.01 0.5];
-Ends = [0.07 0.1];
-Decay_Factor = [1 5 10];
+Starts = [0 0.16];
+Ends = [0.1 0.5];
+Decay_Factor = [5 10 20];
 freq = 200;
 
 for decay_index = 1:length(Decay_Factor)
-    sound = 1:(1/fs):Starts(1);
+    sound = zeros(1,Ends(end)*fs);
     
     for time_index = 1:length(Starts)
-        t = 1:(1/fs):(Ends(time_index)-Starts(time_index));
+        t = 0:(1/fs):(Ends(time_index)-Starts(time_index));
+        SampleStart = round(Starts(time_index)*fs);
         
-        sound = [sound, cos(2*pi*freq*t).*exp(-Decay_Factor(decay_index)*t)];
+        sound(1,SampleStart+1:(SampleStart+length(t))) = cos(2*pi*freq*t).*exp(-Decay_Factor(decay_index)*t);
     end
     
     [ismin,ismax,lags] = segmentTone(sound,fs);
