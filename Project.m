@@ -183,6 +183,44 @@ for decay_index = 1:length(Decay_Factor)
 
 end
 
+%% Segmentation algorithm Evalutaion 
+TimeIntervale = 0.2:0.2:1;
+AbsoluteError = zeros(length(TimeIntervale),length(Decay_Factor));
+Decay_Factor = [100 80 60 40 20 10 5 2 0];
+freq = 200;
+EndTime = 100;
+
+for TimeIntervale_index = 1:length(TimeIntervale)
+    Starts = 1:TimeIntervale(TimeIntervale_index):EndTime-TimeIntervale(TimeIntervale_index);
+    Ends = 1+TimeIntervale(TimeIntervale_index):TimeIntervale(TimeIntervale_index):EndTime;
+    
+    for decay_index = 1:length(Decay_Factor)
+        sound = zeros(1,ceil(Ends(end)*fs));
+        
+        for time_index = 1:length(Starts)
+            t = 0:(1/fs):(Ends(time_index)-Starts(time_index));
+            SampleStart = round(Starts(time_index)*fs);
+            
+            sound(1,SampleStart+1:(SampleStart+length(t))) = cos(2*pi*freq*t).*exp(-Decay_Factor(decay_index)*t);
+        end
+    
+        [ismin,ismax,lags] = segmentTone(sound,fs);
+        ismin(end)=1;
+        Predicted_Starts = lags(ismax)/fs;
+        Predicted_Ends = lags(ismin)/fs;
+        if length(Starts) == length(Predicted_Starts) & length(Ends) == length(Predicted_Ends)
+            AbsoluteError(TimeIntervale_index,decay_index) = mean([ErrorCalculator(Starts,Predicted_Starts),ErrorCalculator(Ends,Predicted_Ends)])/TimeIntervale(TimeIntervale_index);
+            
+        end
+    end
+end
+
+plot(Decay_Factor,AbsoluteError);
+legend('Duration: 0.2s','Duration: 0.4s','Duration: 0.6s','Duration: 0.8s','Duration: 1.0s' );
+xlabel("Decay Factor (Hz)");
+ylabel("Mean Absolute Error (s)");
+
+
 %% Functions
 %1
 function [ismin,ismax,lags] = segmentTone(Signal,fs)
