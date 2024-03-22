@@ -117,7 +117,7 @@ disp(freq)
 %% Part 3
 
 %1
-[ismin,ismax,lags] = segmentTone(AudioX(1:323090,1),fs);
+[ismin,ismax,lags] = segmentTone(AudioX(1:323090,1),fs,true);
 Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
 Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs);
 
@@ -157,36 +157,13 @@ soundsc(sig,fs)
 % sigout = sigout./ max(abs(sigout(:)));
 % audiowrite(filename,sigout(:,1),fs);
 
-[ismin,ismax,lags] = segmentTone(sig,fs);
+[ismin,ismax,lags] = segmentTone(sig,fs,true);
 Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,sig,fs);
 
 %% Segmentation algorithm Evalutaion 
-
-Starts = [0 0.16];
-Ends = [0.1 0.5];
-Decay_Factor = [5 10 20];
-freq = 200;
-
-for decay_index = 1:length(Decay_Factor)
-    sound = zeros(1,Ends(end)*fs);
-    
-    for time_index = 1:length(Starts)
-        t = 0:(1/fs):(Ends(time_index)-Starts(time_index));
-        SampleStart = round(Starts(time_index)*fs);
-        
-        sound(1,SampleStart+1:(SampleStart+length(t))) = cos(2*pi*freq*t).*exp(-Decay_Factor(decay_index)*t);
-    end
-    
-    [ismin,ismax,lags] = segmentTone(sound,fs);
-    Predicted_Starts = lags(ismax)
-    Predicted_Ends = lags(ismin)
-
-end
-
-%% Segmentation algorithm Evalutaion 
 TimeIntervale = 0.2:0.2:1;
-AbsoluteError = zeros(length(TimeIntervale),length(Decay_Factor));
 Decay_Factor = [100 80 60 40 20 10 5 2 0];
+AbsoluteError = zeros(length(TimeIntervale),length(Decay_Factor));
 freq = 200;
 EndTime = 100;
 
@@ -204,7 +181,7 @@ for TimeIntervale_index = 1:length(TimeIntervale)
             sound(1,SampleStart+1:(SampleStart+length(t))) = cos(2*pi*freq*t).*exp(-Decay_Factor(decay_index)*t);
         end
     
-        [ismin,ismax,lags] = segmentTone(sound,fs);
+        [ismin,ismax,lags] = segmentTone(sound,fs,false);
         ismin(end)=1;
         Predicted_Starts = lags(ismax)/fs;
         Predicted_Ends = lags(ismin)/fs;
@@ -223,8 +200,7 @@ ylabel("Mean Absolute Error (s)");
 
 %% Functions
 %1
-function [ismin,ismax,lags] = segmentTone(Signal,fs)
-    figure;
+function [ismin,ismax,lags] = segmentTone(Signal,fs,plot_plz)
     Filterwidth = round(fs*15000/44000);
 
     %Calculates the power of the signal
@@ -246,16 +222,16 @@ function [ismin,ismax,lags] = segmentTone(Signal,fs)
     ismax = islocalmax(round(mean_pow));
     ismax(1:zero_lag)=false;
     
-    
-    plot(max(mean_pow).*Signal);
-    hold on
-    plot(lags(zero_lag:end),mean_pow(zero_lag:end),lags(ismin),mean_pow(ismin),'r*',lags(ismax),mean_pow(ismax),'b*');
-
+    if(plot_plz)
+        figure;
+        plot(max(mean_pow).*Signal);
+        hold on
+        plot(lags(zero_lag:end),mean_pow(zero_lag:end),lags(ismin),mean_pow(ismin),'r*',lags(ismax),mean_pow(ismax),'b*');
+    end
 end
 
 %% Algorithm for the segmentation of tones and pitches
 function f_array = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs)
-    figure;
     k = find(ismin==1);
     mins = lags(k);
     m = find(ismax==1);
@@ -278,6 +254,8 @@ function f_array = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs)
         [x,y] = find(G(:,2)==maximum);
         f_array(i) = G(x(1),1);
     end
+
+    figure;
     plot((fs/L*(0:L-1)),abs(fft_note));
     fprintf('The frequencies of the recognized tones are, using the first method: \n');
     disp(f_array)
