@@ -162,7 +162,7 @@ Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,sig,fs);
 
 %% Segmentation algorithm Evalutaion 
 TimeIntervale = 0.2:0.2:1;
-Decay_Factor = [100 80 60 40 20 10 5 2 0];
+Decay_Factor = [100 80 60 40 20 10 5 2];
 AbsoluteError = zeros(length(TimeIntervale),length(Decay_Factor));
 freq = 200;
 EndTime = 100;
@@ -195,8 +195,28 @@ end
 plot(Decay_Factor,AbsoluteError);
 legend('Duration: 0.2s','Duration: 0.4s','Duration: 0.6s','Duration: 0.8s','Duration: 1.0s' );
 xlabel("Decay Factor (Hz)");
-ylabel("Mean Absolute Error (s)");
+ylabel("Relative Mean Absolute Error (%)");
 
+%% General Evaluation
+% E G A B C B A F# D
+
+soundsc(AudioX(288443:323090,1), fs);
+plot(AudioX(1:323090,1));
+GroundTruth_Freq = [329.63 392 440 483.88 523.25 493.88 440 369.99 293.66];
+
+GroundTruth_Start = [38000 64000 112638 138904 178222 190148 212707 260890 288443];
+GroundTruth_End = [64000 112638 138904 178222 190148 212707 260890 288443 323090];
+
+[ismin,ismax,lags] = segmentTone(AudioX(1:323090,1),fs,true);
+Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
+ismin(end) = 1;
+
+Pred_Start = lags(ismax);
+Pred_End = lags(ismin);
+
+FreqErrorArray = ErrorCalculator(GroundTruth_Freq,Algorithm1);
+StartErrorArray = ErrorCalculator(GroundTruth_Start,Pred_Start)/fs;
+EndErrorArray = ErrorCalculator(GroundTruth_End,Pred_End)/fs;
 
 %% Functions
 %1
