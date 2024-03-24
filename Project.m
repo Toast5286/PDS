@@ -209,7 +209,6 @@ GroundTruth_End = [64000 112638 138904 178222 190148 212707 260890 288443 323090
 
 [ismin,ismax,lags] = segmentTone(AudioX(1:323090,1),fs,true);
 Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
-ismin(end) = 1;
 
 Pred_Start = lags(ismax);
 Pred_End = lags(ismin);
@@ -237,10 +236,13 @@ function [ismin,ismax,lags] = segmentTone(Signal,fs,plot_plz)
     %Find the local minimum
     ismin = islocalmin(round(mean_pow));
     ismin(1:zero_lag)=false;
+    ismin(zero_lag+length(Signal):end)=false;
+    ismin(zero_lag+length(Signal)) = true;
     
     %Find the local maximum
     ismax = islocalmax(round(mean_pow));
     ismax(1:zero_lag)=false;
+    ismax(zero_lag+length(Signal):end)=false;
     
     if(plot_plz)
         figure;
