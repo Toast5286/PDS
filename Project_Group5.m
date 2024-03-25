@@ -1,15 +1,24 @@
+%%
+%Project done by:
+    % Gil Beirão nº99943
+    % Rodolfo Amorim nº100260
+
+%Index
+%Part 1 from line 11 to line 74 
+%Part 2 from line 75 to line 117 
+%Part 3 from line 118 to line 194
+%Functions section from line 195 to 301
 %% Part1
 figure;
-
 %1
 [Audio, fs] = audioread("greensleeves.wav");
 AudioX = Audio(:,1); 
+%soundsc(AudioX(:,1),fs);
 
 plot(AudioX);
 title('\textbf{Signal from greensleeves.wav}', 'Interpreter','latex')
 xlabel('\textbf{Sample}','Interpreter','latex');
 ylabel('\textbf{Amplitude}', 'Interpreter','latex');
-%soundsc(AudioX(:,1),fs);
 
 %2
 plot(AudioX(1:325100,1));
@@ -18,12 +27,11 @@ xlabel('\textbf{Sample}','Interpreter','latex');
 ylabel('\textbf{Amplitude}', 'Interpreter','latex') ;
 
 %3 
-%Yes the signal can be down sampled before the pitch recognition, since 
-%the used sampling frequency (which is 44kHz) is about 30 times higher 
+%Yes, the signal can be down sampled before the pitch recognition, since 
+%the used sampling frequency (which is 44KHz) is about 10 times higher 
 %than the signal's maximum relevant frequency 
 
 %4
-
 %Tone 1: 38000 to 64000 (in relation to sample number)
 %Tone 2: 64000 to 112638
 %tone 3: 112638 to 138904
@@ -34,12 +42,12 @@ ylabel('\textbf{Amplitude}', 'Interpreter','latex') ;
 %tone 8: 260890 to 288443
 %tone 9: 288443 to 323090
 
-lista1 = [38000 64000 112638 138904 178222 190148 212707 260890 288443]; %beginning of each note
-lista2 = [64000 112638 138904 178222 190148 212707 260890 288443 325100]; %ending of each note 
+list1 = [38000 64000 112638 138904 178222 190148 212707 260890 288443]; %beginning of each note
+list2 = [64000 112638 138904 178222 190148 212707 260890 288443 325100]; %ending of each note 
 
 %Fourier Spectrum
-for i=1:length(lista1)
-    signal = AudioX(lista1(i):lista2(i),1);
+for i=1:length(list1)
+    signal = AudioX(list1(i):list2(i),1);
     L = length(signal);
     sig_fft = fft(signal,length(signal));
     axis = ((fs/L*(0:L-1)));
@@ -51,16 +59,14 @@ for i=1:length(lista1)
 end
 
 %Auto-Correlation
-for r=1:length(lista1)
-    [auto_corr,lag] = xcorr(AudioX(1:325100,1),AudioX(lista1(r):lista2(r),1));
+for r=1:length(list1)
+    [auto_corr,lag] = xcorr(AudioX(1:325100,1),AudioX(list1(r):list2(r),1));
     subplot(3, 3, r);
     plot(auto_corr(325100:length(auto_corr)));
     title('\textbf{Auto-Correlation of note }' + string(r), 'Interpreter','latex')
     xlabel('\textbf{Lags}','Interpreter','latex');
     ylim([0 1000]);
-    %ylabel('\textbf{0}', 'Interpreter','latex');
 end
-
 
 %5
 N=144;
@@ -69,7 +75,6 @@ title('Sepctogram of the first 9 tones')
 %% Part 2
 
 %1
-
 %Tone 1: 38000 to 64000 (in relation to sample number)
 %Tone 2: 64000 to 112638
 %tone 3: 112638 to 138904
@@ -80,23 +85,24 @@ title('Sepctogram of the first 9 tones')
 %tone 8: 260890 to 288443
 %tone 9: 288443 to 323090
 
-%2 and 3
-signal = AudioX(38000:64000,1);
-x_fft_1st_sample = fft(signal,length(signal));
-
+%2
+% clc
+% signal = AudioX(38000:64000,1);
+% x_fft_1st_sample = fft(signal,length(signal));
 % L = length(signal);
 % K = ((fs/L*(0:L-1)))';
 % K(1:L,2) = (abs(x_fft_1st_sample))';
 % maximum = max(K(:,2));
 % [x,y] = find(K==maximum);
 % freq = K(x(1),1);
-% disp(freq)
+% fprintf('The pitch recognition value is = %f \n',freq);
 
+%3
+clc
 Ts=1/fs;
 time = 0.7;
 t=[0:Ts:time];
-notes = [200];
-%extra_notes = [87.31 98 110 98];
+notes = [440];
 signal = zeros(1,int32(time/Ts+1));
 for i=1:length(notes)
         signal(i,:) = cos(2.*pi.*notes(i).*t)+ cos(16.*pi.*notes(i).*t)+ cos(32.*pi.*notes(i).*t);
@@ -108,59 +114,15 @@ K(1:L,2) = (abs(sig_fft))';
 maximum = max(K(:,2));
 [x,y] = find(K==maximum);
 freq = K(x(1),1);
-disp(freq)
-
-
-
-% axis = ((fs/L*(0:L-1)));
-% plot(axis, abs(x_fft_1st_sample))
+fprintf('The absolute error for the pitch recognition is = %f \n',notes(1)-freq);
 %% Part 3
 
 %1
-[ismin,ismax,lags] = segmentTone(AudioX(1:323090,1),fs,true);
-Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
-Algorithm2 = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs);
+[ismin,ismax,lags] = segmentTone(AudioX(:,1),fs,true);
+Notes_syn = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs);
 
-
-%% 2
-%Audio signal generation
-Ts=1/fs;
-time = 0.5;
-t=[0:Ts:time];
-notes = [Algorithm1(1:9)];
-sound = zeros(1,int32(time/Ts+1));
-for i=1:length(Algorithm1(1:9))
-     sound(i,:) = cos(2.*pi.*notes(i).*t)+cos(4.*pi.*notes(i).*t)+cos(8.*pi.*notes(i).*t)+cos(16.*pi.*notes(i).*t);    
-end
-sig = reshape(sound',9*length(t),1);
-reverb = reverberator("DecayFactor",0.9,"SampleRate",fs);
-sigout = reverb(sig);
-soundsc(sigout(:,1),fs)
-
-%% 2 continuation 
-%Synthesized signal
-Ts=1/fs;
-time = 0.8;
-t=[0:Ts:time];
-notes = [440 659 440 659 493 659 493 659 523 659 523 659 587 659 587 659 440 659 440 659]; 
-sound = zeros(1,int32(time/Ts+1));
-for i=1:length(notes)
-    
-        sound(i,:) = cos(2.*pi.*notes(i).*t).*exp(-10.*t);
-   
-end
-sig = reshape(sound',length(notes)*length(t),1);
-sig = sig./ max(abs(sig(:)));
-
-soundsc(sig,fs)
-
-% sigout = sigout./ max(abs(sigout(:)));
-% audiowrite(filename,sigout(:,1),fs);
-
-[ismin,ismax,lags] = segmentTone(sig,fs,true);
-Algorithm1 = ToneID1stAlgorithm(lags,ismin,ismax,sig,fs);
-
-%% Segmentation algorithm Evalutaion 
+%2
+% Segmentation algorithm Evalutaion 
 TimeIntervale = 0.2:0.2:1;
 Decay_Factor = [100 80 60 40 20 10 5 2];
 AbsoluteError = zeros(length(TimeIntervale),length(Decay_Factor));
@@ -197,10 +159,10 @@ legend('Duration: 0.2s','Duration: 0.4s','Duration: 0.6s','Duration: 0.8s','Dura
 xlabel("Decay Factor (Hz)");
 ylabel("Relative Mean Absolute Error (%)");
 
-%% General Evaluation
+%General Evaluation
+%Evaluation for the first 9 notes of the greensleeves audio file
 % E G A B C B A F# D
 
-soundsc(AudioX(288443:323090,1), fs);
 plot(AudioX(1:323090,1));
 GroundTruth_Freq = [329.63 392 440 483.88 523.25 493.88 440 369.99 293.66];
 
@@ -217,8 +179,22 @@ FreqErrorArray = ErrorCalculator(GroundTruth_Freq,Algorithm1);
 StartErrorArray = ErrorCalculator(GroundTruth_Start,Pred_Start)/fs;
 EndErrorArray = ErrorCalculator(GroundTruth_End,Pred_End)/fs;
 
+%% 
+%Synthesised Greensleeves signal with the fundamental frequencies 
+%given by the previous Algorithm 
+Ts=1/fs;
+time = 0.59;
+t=[0:Ts:time];
+notes = Notes_syn;
+sound = zeros(1,int32(time/Ts+1));
+for i=1:length(notes)
+        sound(i,:) = ((cos(2.*pi.*notes(i).*t)+cos(4.*pi.*notes(i).*t))).*exp(-5.*t);
+end
+sig = reshape(sound',length(notes)*length(t),1);
+soundsc(sig,fs);
 %% Functions
-%1
+
+%Segmentation Algorithm
 function [ismin,ismax,lags] = segmentTone(Signal,fs,plot_plz)
     Filterwidth = round(fs*15000/44000);
 
@@ -252,7 +228,7 @@ function [ismin,ismax,lags] = segmentTone(Signal,fs,plot_plz)
     end
 end
 
-%% Algorithm for the segmentation of tones and pitches
+%Algorithm for the recognition of pitches using DFT
 function f_array = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs)
     k = find(ismin==1);
     mins = lags(k);
@@ -283,41 +259,14 @@ function f_array = ToneID1stAlgorithm(lags,ismin,ismax,AudioX,fs)
     disp(f_array)
 end
 
-
-%% 2nd Algorithm 
-function f_array = ToneID2ndAlgorithm(lags,ismin,ismax,AudioX,fs)
-
-    k = find(ismin==1);
-    mins = lags(k);
-    f_array = [0];
-    
-    for i=1:length(mins)-1
-        sig = AudioX(mins(i):mins(i+1),1);
-    
-        fft_note = fft(sig,length(sig));
-        L = length(sig);
-        
-        G = ((fs/L*(0:L-1)))';
-        G(1:L,2) = (abs(fft_note))';
-       
-        maximum = max(G(:,2));
-        [x,y] = find(G(:,2)==maximum);
-        f_array(i) = G(x(1),1);
-    end
-    
-    fprintf('The frequencies of the recognized tones are, using the second method: \n')
-    disp(f_array)
-end
-
-%% 2
+%Error Calculator for the absolute error metric 
 function Error_array = ErrorCalculator(GroundTruth,Freq_array)
     Error_array = abs(Freq_array-GroundTruth);
     fprintf('Mean error: \n')
     disp(mean(Error_array))
 end
-%%GroundTruth = [329.63,392,440,493.23,523.25,493.88,440,369.99];
 
-%% Algorithm for the segmentation of tones and pitches using AutoCorrelation
+%Algorithm for the recognition of pitches using Auto-Correlation
 function f_array = ToneID3rdAlgorithm(lags,ismin,ismax,AudioX,fs)
     figure;
     k = find(ismin==1);
